@@ -1,0 +1,184 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum ProjectRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  name          String
+  phone         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  // Relations
+  refreshTokens  RefreshToken[]
+  projects       Project[]
+  references     Reference[]
+  collaborations ProjectCollaborator[]
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+enum ProjectStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+model Project {
+  id          String        @id @default(uuid())
+  title       String
+  description String?
+  goal        String?
+  status      ProjectStatus @default(DRAFT)
+  ownerId     String
+  owner       User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  references    Reference[]
+  workflow      WorkflowCard[]
+  conceptNodes  ConceptNode[]
+  edges         Edge[]
+  experiments   Experiment[]
+  collaborators ProjectCollaborator[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+enum WorkflowStage {
+  LITERATURE_REVIEW
+  HYPOTHESIS_DEVELOPMENT
+  EXPERIMENT_DESIGN
+  RESULT_ANALYSIS
+}
+
+enum ExperimentStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model Experiment {
+  id          String             @id @default(uuid())
+  title       String
+  objective   String?
+  methodology String?
+  status      ExperimentStatus   @default(PLANNED)
+  projectId   String
+  project     Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  iterations  ExperimentIteration[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+}
+
+model ExperimentIteration {
+  id           String     @id @default(uuid())
+  notes        String?
+  result       String?
+  attemptNumber Int
+  experimentId String
+  experiment   Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+}
+
+model WorkflowCard {
+  id          String        @id @default(uuid())
+  title       String
+  description String?
+  stage       WorkflowStage @default(LITERATURE_REVIEW)
+  projectId   String
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+enum ConceptNodeType {
+  CONCEPT
+  HYPOTHESIS
+  PAPER
+  EXPERIMENT
+  INSIGHT
+}
+
+enum EdgeRelation {
+  SUPPORTS
+  CONTRADICTS
+  DERIVED_FROM
+  LEADS_TO
+}
+
+model ConceptNode {
+  id          String          @id @default(uuid())
+  label       String
+  type        ConceptNodeType @default(CONCEPT)
+  description String?
+  projectId   String
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceEdges Edge[]          @relation("sourceEdges")
+  targetEdges Edge[]          @relation("targetEdges")
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model Edge {
+  id        String       @id @default(uuid())
+  sourceId  String
+  targetId  String
+  relation  EdgeRelation @default(SUPPORTS)
+  projectId String
+  source    ConceptNode  @relation("sourceEdges", fields: [sourceId], references: [id], onDelete: Cascade)
+  target    ConceptNode  @relation("targetEdges", fields: [targetId], references: [id], onDelete: Cascade)
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model Reference {
+  id            String    @id @default(uuid())
+  title         String
+  authors       String?
+  year          Int?
+  tags          String[]  @default([])
+  summary       String?
+  filePath      String?
+  fileName      String?
+  fileMimeType  String?
+  projectId     String
+  uploadedById  String
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedBy    User      @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model ProjectCollaborator {
+  id        String      @id @default(uuid())
+  projectId String
+  userId    String
+  role      ProjectRole @default(VIEWER)
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@unique([projectId, userId])
+}
