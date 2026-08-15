@@ -45,6 +45,15 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 // Mount main routing
 app.use('/api', apiRouter);
 
+// Health check / Root endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'CivicPulse API Server is running smoothly',
+    timestamp: new Date()
+  });
+});
+
 // Handle 404 routes
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server.`, 404));
