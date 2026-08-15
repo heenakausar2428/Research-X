@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const getApiBase = () => {
+  const url = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  return url.endsWith('/api') ? url : `${url.replace(/\/$/, '')}/api`;
+};
+const API_BASE = getApiBase();
 
 function getStrength(pw) {
   if (!pw) return { score: 0, label: "", color: "" };
