@@ -211,7 +211,7 @@ export default function LiteraturePage() {
                     </div>
                     {ref.filePath && (
                       <a
-                        href={`http://localhost:5000/uploads/${ref.filePath.split(/[\\/]/).pop()}`}
+                        href={`${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '')}/uploads/${ref.filePath.split(/[\\/]/).pop()}`}
                         target="_blank"
                         rel="noreferrer"
                         className="flex-shrink-0 rounded-lg border border-slate-800 bg-slate-900/20 px-3 py-1.5 text-2xs font-bold uppercase text-indigo-400 hover:text-white hover:border-slate-700 transition-colors"
